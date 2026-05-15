@@ -4,6 +4,25 @@ import android.content.Context
 import android.net.Uri
 import java.io.File
 
+// преобразуем сохраненную строку в модель для Coil
+// если это путь к файлу - оборачиваем в File
+// если что то другое (старые content URI) - оставляем как есть
+fun toImageModel(imageUri: String?): Any? {
+
+    if (imageUri == null) {
+        return null
+    }
+
+    // пути в Android начинаются со слеша
+    if (imageUri.startsWith("/")) {
+        return File(imageUri)
+    }
+
+    // на случай старых записей с content:// URI
+    return imageUri
+}
+
+
 // копируем выбранное фото в filesDir приложения
 // чтобы оно не потерялось после закрытия приложения
 // PhotoPicker дает только временный доступ к URI
@@ -30,8 +49,9 @@ fun saveImageToInternalStorage(
                 }
             }
 
-        // возвращаем file URI чтобы Coil потом загрузил
-        Uri.fromFile(outFile).toString()
+        // возвращаем абсолютный путь к файлу
+        // потом обернем в File когда будем грузить через Coil
+        outFile.absolutePath
 
     } catch (e: Exception) {
 

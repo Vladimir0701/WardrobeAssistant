@@ -23,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wardrobeassistant.data.model.ClothingItem
+import com.example.wardrobeassistant.utils.toImageModel
 
 @Composable
 fun WardrobeScreen(
@@ -86,7 +87,7 @@ fun WardrobeScreen(
                     if (item.imageUri != null) {
 
                         AsyncImage(
-                            model = item.imageUri,
+                            model = toImageModel(item.imageUri),
                             contentDescription = item.name,
                             modifier = Modifier
                                 .fillMaxWidth()

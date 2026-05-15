@@ -34,6 +34,7 @@ import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
 import com.example.wardrobeassistant.utils.saveImageToInternalStorage
+import com.example.wardrobeassistant.utils.toImageModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,7 +147,7 @@ fun AddClothingScreen(
         if (selectedImageUri != null) {
 
             AsyncImage(
-                model = selectedImageUri,
+                model = toImageModel(selectedImageUri),
                 contentDescription = "Превью одежды",
                 modifier = Modifier
                     .fillMaxWidth()
