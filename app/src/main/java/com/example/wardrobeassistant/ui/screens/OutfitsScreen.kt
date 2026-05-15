@@ -15,9 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -29,24 +34,16 @@ import com.example.wardrobeassistant.data.model.Outfit
 import com.example.wardrobeassistant.utils.generateOutfits
 import com.example.wardrobeassistant.utils.toImageModel
 
-// сколько комплектов максимум показывать в списке
-// чтобы не заваливать пользователя
-private const val MAX_OUTFITS_TO_SHOW = 30
-
 @Composable
 fun OutfitsScreen(
     clothingItems: List<ClothingItem>
 ) {
 
-    // генерируем комплекты на лету
-    // gardrobe items не должен быть огромным, перебор быстрый
+    // генерируем все возможные комплекты
     val allOutfits = generateOutfits(clothingItems)
 
-    // показываем топ N лучших комплектов
-    val topOutfits = allOutfits.take(MAX_OUTFITS_TO_SHOW)
-
     // если ничего не сгенерировалось - подсказка
-    if (topOutfits.isEmpty()) {
+    if (allOutfits.isEmpty()) {
 
         Column(
             modifier = Modifier
@@ -73,34 +70,94 @@ fun OutfitsScreen(
         return
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    // выбранный лимит вывода
+    // null означает показывать все
+    var selectedLimit: Int? by remember {
+        mutableStateOf(30)
+    }
+
+    // доступные варианты для выбора
+    // null это "все"
+    val limitOptions = listOf<Int?>(10, 30, 100, null)
+
+    // применяем выбранный лимит
+    // локальная val чтобы умный каст сработал
+    val limit = selectedLimit
+    val outfitsToShow = if (limit != null) {
+        allOutfits.take(limit)
+    } else {
+        allOutfits
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        // строчка-заголовок со счетчиком
-        item {
-
-            val totalCount = allOutfits.size
-            val shownCount = topOutfits.size
-
-            // если показываем не все - покажем сколько всего
-            val header = if (totalCount > shownCount) {
-                "Найдено $totalCount комплектов, " +
-                    "показаны топ $shownCount"
-            } else {
-                "Найдено $totalCount комплектов"
-            }
+        // строка с фильтром по количеству
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
             Text(
-                text = header,
+                text = "Показать:",
                 style = MaterialTheme.typography.bodyMedium
             )
+
+            limitOptions.forEach { option ->
+
+                FilterChip(
+                    selected = option == selectedLimit,
+                    onClick = {
+                        selectedLimit = option
+                    },
+                    label = {
+                        Text(
+                            // null = "Все", иначе число
+                            text = option?.toString() ?: "Все"
+                        )
+                    }
+                )
+            }
         }
 
-        items(topOutfits) { outfit ->
-            OutfitCard(outfit = outfit)
+        // дальше список комплектов
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 4.dp,
+                bottom = 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            // заголовок со счетчиком в списке
+            item {
+
+                val totalCount = allOutfits.size
+                val shownCount = outfitsToShow.size
+
+                val header = if (totalCount > shownCount) {
+                    "Найдено $totalCount комплектов, " +
+                        "показано $shownCount"
+                } else {
+                    "Найдено $totalCount комплектов"
+                }
+
+                Text(
+                    text = header,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            items(outfitsToShow) { outfit ->
+                OutfitCard(outfit = outfit)
+            }
         }
     }
 }
@@ -151,20 +208,17 @@ private fun OutfitCard(outfit: Outfit) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
 
-                        // фото
                         if (item.imageUri != null) {
 
                             AsyncImage(
                                 model = toImageModel(item.imageUri),
                                 contentDescription = item.name,
-                                modifier = Modifier
-                                    .size(96.dp),
+                                modifier = Modifier.size(96.dp),
                                 contentScale = ContentScale.Crop
                             )
 
                         } else {
 
-                            // плейсхолдер если фото нет
                             Box(
                                 modifier = Modifier.size(96.dp),
                                 contentAlignment = Alignment.Center
@@ -178,13 +232,11 @@ private fun OutfitCard(outfit: Outfit) {
 
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // название категории мелким шрифтом
                         Text(
                             text = item.category.displayName,
                             style = MaterialTheme.typography.bodySmall
                         )
 
-                        // название вещи
                         Text(
                             text = item.name,
                             style = MaterialTheme.typography.bodySmall,
@@ -198,7 +250,6 @@ private fun OutfitCard(outfit: Outfit) {
 }
 
 // текстовая метка по оценке
-// чтоб человеку было понятнее чем просто проценты
 private fun scoreLabel(score: Double): String {
     return when {
         score >= 0.85 -> "Отличный"
