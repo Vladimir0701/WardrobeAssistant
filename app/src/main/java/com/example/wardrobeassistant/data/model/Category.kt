@@ -4,6 +4,5 @@ package com.example.wardrobeassistant.data.model
 enum class Category(val displayName: String) {
     BASE_TOP("Базовый верх"),
     OUTER_LAYER("Верхний слой"),
-    BOTTOM("Низ"),
-    ACCESSORY("Аксессуары")
+    BOTTOM("Низ")
 }
