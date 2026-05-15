@@ -1,6 +1,7 @@
 package com.example.wardrobeassistant.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -15,8 +16,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.wardrobeassistant.data.model.ClothingItem
 
 @Composable
@@ -74,6 +78,38 @@ fun WardrobeScreen(
                 Column(
                     modifier = Modifier.padding(16.dp)
                 ) {
+
+                    // картинка одежды если есть
+                    // если нет - показываем плейсхолдер с текстом
+                    if (item.imageUri != null) {
+
+                        AsyncImage(
+                            model = item.imageUri,
+                            contentDescription = item.name,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            contentScale = ContentScale.Crop
+                        )
+
+                    } else {
+
+                        // плейсхолдер для вещей без фото
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Text(
+                                text = "Без фото",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // название вещи
                     Text(

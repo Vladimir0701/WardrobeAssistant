@@ -5,5 +5,8 @@ data class ClothingItem(
     val name: String,
     val category: Category,
     val color: ColorGroup,
-    val season: Season
+    val season: Season,
+    // путь к выбранной фотографии
+    // null если фото не выбрано
+    val imageUri: String? = null
 )

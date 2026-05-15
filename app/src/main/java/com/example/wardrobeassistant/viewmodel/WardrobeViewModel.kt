@@ -26,14 +26,16 @@ class WardrobeViewModel : ViewModel() {
             name = "Черная футболка",
             category = Category.BASE_TOP,
             color = ColorGroup.BLACK,
-            season = Season.SUMMER
+            season = Season.SUMMER,
+            imageUri = null
         )
 
         addClothingItem(
             name = "Синие джинсы",
             category = Category.BOTTOM,
             color = ColorGroup.BLUE,
-            season = Season.DEMI_SEASON
+            season = Season.DEMI_SEASON,
+            imageUri = null
         )
     }
 
@@ -41,7 +43,8 @@ class WardrobeViewModel : ViewModel() {
         name: String,
         category: Category,
         color: ColorGroup,
-        season: Season
+        season: Season,
+        imageUri: String?
     ) {
 
         // защита от пустого названия
@@ -56,7 +59,8 @@ class WardrobeViewModel : ViewModel() {
             name = name.trim(),
             category = category,
             color = color,
-            season = season
+            season = season,
+            imageUri = imageUri
         )
 
         // добавляем в список

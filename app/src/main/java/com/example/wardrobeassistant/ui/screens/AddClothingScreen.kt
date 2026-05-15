@@ -1,29 +1,36 @@
 package com.example.wardrobeassistant.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.wardrobeassistant.data.model.Category
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +39,8 @@ fun AddClothingScreen(
         String,
         Category,
         ColorGroup,
-        Season
+        Season,
+        String?
     ) -> Unit
 ) {
 
@@ -56,6 +64,12 @@ fun AddClothingScreen(
         mutableStateOf(Season.SUMMER)
     }
 
+    // выбранная фотография
+    // null значит фото пока нет
+    var selectedImageUri by remember {
+        mutableStateOf<String?>(null)
+    }
+
     // состояния dropdown меню
     var categoryExpanded by remember {
         mutableStateOf(false)
@@ -69,10 +83,26 @@ fun AddClothingScreen(
         mutableStateOf(false)
     }
 
+    // лаунчер для выбора фото из галереи
+    // PhotoPicker - стандартный способ
+    // в новых версиях андроида не требует разрешений
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+
+        // uri может быть null если юзер закрыл пикер
+        if (uri != null) {
+            selectedImageUri = uri.toString()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            // экран длинный, делаем прокрутку
+            // чтобы кнопка сохранить не уезжала за экран
+            .verticalScroll(rememberScrollState()),
 
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -81,6 +111,46 @@ fun AddClothingScreen(
             text = "Добавление одежды",
             style = MaterialTheme.typography.headlineSmall
         )
+
+        // превью выбранной фотографии
+        // показываем только если что то выбрано
+        if (selectedImageUri != null) {
+
+            AsyncImage(
+                model = selectedImageUri,
+                contentDescription = "Превью одежды",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                // картинка вписывается целиком
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        // кнопка выбора фото
+        OutlinedButton(
+            onClick = {
+
+                // запускаем пикер
+                // ImageOnly - показываем только картинки без видео
+                photoPickerLauncher.launch(
+                    PickVisualMediaRequest(
+                        ActivityResultContracts
+                            .PickVisualMedia
+                            .ImageOnly
+                    )
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+
+            // меняем текст если фото уже выбрано
+            if (selectedImageUri == null) {
+                Text("Выбрать фото")
+            } else {
+                Text("Заменить фото")
+            }
+        }
 
         // поле названия
         OutlinedTextField(
@@ -228,7 +298,8 @@ fun AddClothingScreen(
                     clothingName,
                     selectedCategory,
                     selectedColor,
-                    selectedSeason
+                    selectedSeason,
+                    selectedImageUri
                 )
             },
             modifier = Modifier.fillMaxWidth()

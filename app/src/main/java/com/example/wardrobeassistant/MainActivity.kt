@@ -76,14 +76,16 @@ class MainActivity : ComponentActivity() {
                                     name,
                                     category,
                                     color,
-                                    season ->
+                                    season,
+                                    imageUri ->
 
                                 // добавляем новую вещь
                                 wardrobeViewModel.addClothingItem(
                                     name = name,
                                     category = category,
                                     color = color,
-                                    season = season
+                                    season = season,
+                                    imageUri = imageUri
                                 )
 
                                 // после сохранения возвращаемся

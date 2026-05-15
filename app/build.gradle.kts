@@ -58,4 +58,7 @@ dependencies {
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
     implementation("androidx.compose.material3:material3")
+
+    // Coil для отображения картинок из галереи
+    implementation(libs.coil.compose)
 }
