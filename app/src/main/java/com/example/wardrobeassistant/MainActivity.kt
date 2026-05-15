@@ -14,9 +14,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.wardrobeassistant.data.model.Category
-import com.example.wardrobeassistant.data.model.ColorGroup
-import com.example.wardrobeassistant.data.model.Season
 import com.example.wardrobeassistant.ui.screens.AddClothingScreen
 import com.example.wardrobeassistant.ui.screens.WardrobeScreen
 import com.example.wardrobeassistant.ui.theme.WardrobeAssistantTheme
@@ -41,25 +38,6 @@ class MainActivity : ComponentActivity() {
                 // true = экран добавления
                 var isAddingScreenVisible by remember {
                     mutableStateOf(false)
-                }
-
-                // временные данные
-                // потом будет реальное добавление
-                if (wardrobeViewModel.clothingItems.isEmpty()) {
-
-                    wardrobeViewModel.addClothingItem(
-                        name = "Черная футболка",
-                        category = Category.BASE_TOP,
-                        color = ColorGroup.BLACK,
-                        season = Season.SUMMER
-                    )
-
-                    wardrobeViewModel.addClothingItem(
-                        name = "Синие джинсы",
-                        category = Category.BOTTOM,
-                        color = ColorGroup.BLUE,
-                        season = Season.DEMI_SEASON
-                    )
                 }
 
                 Column(

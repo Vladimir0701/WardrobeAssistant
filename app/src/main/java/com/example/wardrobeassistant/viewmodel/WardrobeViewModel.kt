@@ -17,6 +17,26 @@ class WardrobeViewModel : ViewModel() {
     // mutableStateListOf нужен чтобы compose видел изменения
     val clothingItems = mutableStateListOf<ClothingItem>()
 
+    // тестовые данные при первом запуске
+    // init вызывается один раз при создании viewmodel
+    // потом уберем когда подключим Room
+    init {
+
+        addClothingItem(
+            name = "Черная футболка",
+            category = Category.BASE_TOP,
+            color = ColorGroup.BLACK,
+            season = Season.SUMMER
+        )
+
+        addClothingItem(
+            name = "Синие джинсы",
+            category = Category.BOTTOM,
+            color = ColorGroup.BLUE,
+            season = Season.DEMI_SEASON
+        )
+    }
+
     fun addClothingItem(
         name: String,
         category: Category,
