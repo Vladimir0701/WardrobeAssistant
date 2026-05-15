@@ -26,12 +26,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wardrobeassistant.data.model.Category
 import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
+import com.example.wardrobeassistant.utils.saveImageToInternalStorage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,6 +93,9 @@ fun AddClothingScreen(
         mutableStateOf(false)
     }
 
+    // нужен Context для копирования фото в filesDir
+    val context = LocalContext.current
+
     // лаунчер для выбора фото из галереи
     // PhotoPicker - стандартный способ
     // в новых версиях андроида не требует разрешений
@@ -100,7 +105,18 @@ fun AddClothingScreen(
 
         // uri может быть null если юзер закрыл пикер
         if (uri != null) {
-            selectedImageUri = uri.toString()
+
+            // копируем фото к нам в filesDir
+            // чтобы оставалось после перезапуска приложения
+            val savedUri = saveImageToInternalStorage(
+                context = context,
+                sourceUri = uri
+            )
+
+            // если копирование прошло успешно - сохраняем путь
+            if (savedUri != null) {
+                selectedImageUri = savedUri
+            }
         }
     }
 
