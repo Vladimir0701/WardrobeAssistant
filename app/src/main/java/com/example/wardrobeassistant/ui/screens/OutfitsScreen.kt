@@ -29,6 +29,10 @@ import com.example.wardrobeassistant.data.model.Outfit
 import com.example.wardrobeassistant.utils.generateOutfits
 import com.example.wardrobeassistant.utils.toImageModel
 
+// сколько комплектов максимум показывать в списке
+// чтобы не заваливать пользователя
+private const val MAX_OUTFITS_TO_SHOW = 30
+
 @Composable
 fun OutfitsScreen(
     clothingItems: List<ClothingItem>
@@ -38,8 +42,8 @@ fun OutfitsScreen(
     // gardrobe items не должен быть огромным, перебор быстрый
     val allOutfits = generateOutfits(clothingItems)
 
-    // показываем топ 10 чтобы не заваливать пользователя
-    val topOutfits = allOutfits.take(10)
+    // показываем топ N лучших комплектов
+    val topOutfits = allOutfits.take(MAX_OUTFITS_TO_SHOW)
 
     // если ничего не сгенерировалось - подсказка
     if (topOutfits.isEmpty()) {
@@ -74,6 +78,26 @@ fun OutfitsScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+
+        // строчка-заголовок со счетчиком
+        item {
+
+            val totalCount = allOutfits.size
+            val shownCount = topOutfits.size
+
+            // если показываем не все - покажем сколько всего
+            val header = if (totalCount > shownCount) {
+                "Найдено $totalCount комплектов, " +
+                    "показаны топ $shownCount"
+            } else {
+                "Найдено $totalCount комплектов"
+            }
+
+            Text(
+                text = header,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
 
         items(topOutfits) { outfit ->
             OutfitCard(outfit = outfit)
