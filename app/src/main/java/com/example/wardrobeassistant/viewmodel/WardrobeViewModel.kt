@@ -67,6 +67,44 @@ class WardrobeViewModel : ViewModel() {
         clothingItems.add(item)
     }
 
+    // обновление существующей вещи
+    // находим по id и заменяем поля
+    fun updateClothingItem(
+        id: Int,
+        name: String,
+        category: Category,
+        color: ColorGroup,
+        season: Season,
+        imageUri: String?
+    ) {
+
+        // защита от пустого названия
+        if (name.isBlank()) {
+            return
+        }
+
+        // ищем вещь в списке
+        // indexOfFirst вернет -1 если не нашли
+        val index = clothingItems.indexOfFirst { item ->
+            item.id == id
+        }
+
+        // если вещь куда то делась - ничего не делаем
+        if (index == -1) {
+            return
+        }
+
+        // copy создает новый объект с обновленными полями
+        // id оставляем прежним
+        clothingItems[index] = clothingItems[index].copy(
+            name = name.trim(),
+            category = category,
+            color = color,
+            season = season,
+            imageUri = imageUri
+        )
+    }
+
     // удаление вещи по id
     // ищем по id чтобы случайно не удалить не ту
     fun removeClothingItem(id: Int) {

@@ -29,12 +29,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.wardrobeassistant.data.model.Category
+import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddClothingScreen(
+    // если передали существующую вещь - значит режим редактирования
+    // если null - режим добавления новой
+    existingItem: ClothingItem? = null,
     onSaveClick: (
         String,
         Category,
@@ -44,30 +48,34 @@ fun AddClothingScreen(
     ) -> Unit
 ) {
 
+    // ключ для remember чтобы при выборе другой вещи
+    // на редактирование поля обновлялись правильно
+    val itemKey = existingItem?.id
+
     // название одежды
-    var clothingName by remember {
-        mutableStateOf("")
+    // если редактируем - подставляем существующее имя
+    var clothingName by remember(itemKey) {
+        mutableStateOf(existingItem?.name ?: "")
     }
 
     // выбранная категория
-    var selectedCategory by remember {
-        mutableStateOf(Category.BASE_TOP)
+    var selectedCategory by remember(itemKey) {
+        mutableStateOf(existingItem?.category ?: Category.BASE_TOP)
     }
 
     // выбранный цвет
-    var selectedColor by remember {
-        mutableStateOf(ColorGroup.BLACK)
+    var selectedColor by remember(itemKey) {
+        mutableStateOf(existingItem?.color ?: ColorGroup.BLACK)
     }
 
     // выбранный сезон
-    var selectedSeason by remember {
-        mutableStateOf(Season.SUMMER)
+    var selectedSeason by remember(itemKey) {
+        mutableStateOf(existingItem?.season ?: Season.SUMMER)
     }
 
     // выбранная фотография
-    // null значит фото пока нет
-    var selectedImageUri by remember {
-        mutableStateOf<String?>(null)
+    var selectedImageUri by remember(itemKey) {
+        mutableStateOf(existingItem?.imageUri)
     }
 
     // состояния dropdown меню
@@ -107,8 +115,13 @@ fun AddClothingScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
+        // заголовок меняется в зависимости от режима
         Text(
-            text = "Добавление одежды",
+            text = if (existingItem == null) {
+                "Добавление одежды"
+            } else {
+                "Редактирование"
+            },
             style = MaterialTheme.typography.headlineSmall
         )
 
@@ -291,6 +304,7 @@ fun AddClothingScreen(
         }
 
         // кнопка сохранения
+        // надпись зависит от режима
         Button(
             onClick = {
 
@@ -305,7 +319,13 @@ fun AddClothingScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
 
-            Text("Сохранить")
+            Text(
+                if (existingItem == null) {
+                    "Сохранить"
+                } else {
+                    "Обновить"
+                }
+            )
         }
     }
 }

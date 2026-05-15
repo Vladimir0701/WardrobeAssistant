@@ -14,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.ui.screens.AddClothingScreen
 import com.example.wardrobeassistant.ui.screens.WardrobeScreen
 import com.example.wardrobeassistant.ui.theme.WardrobeAssistantTheme
@@ -33,12 +34,21 @@ class MainActivity : ComponentActivity() {
                 // viewModel со списком одежды
                 val wardrobeViewModel: WardrobeViewModel = viewModel()
 
-                // состояние текущего экрана
-                // false = гардероб
-                // true = экран добавления
+                // флаг что открыт экран добавления новой вещи
                 var isAddingScreenVisible by remember {
                     mutableStateOf(false)
                 }
+
+                // если не null - значит редактируем эту вещь
+                // null - значит редактирование не открыто
+                var editingItem: ClothingItem? by remember {
+                    mutableStateOf(null)
+                }
+
+                // показываем форму (добавление или редактирование)
+                // если хотя бы один из флагов установлен
+                val isFormVisible =
+                    isAddingScreenVisible || editingItem != null
 
                 Column(
 
@@ -51,13 +61,21 @@ class MainActivity : ComponentActivity() {
                     Button(
                         onClick = {
 
-                            // меняем текущий экран
-                            isAddingScreenVisible =
-                                !isAddingScreenVisible
+                            if (isFormVisible) {
+
+                                // выходим из формы
+                                isAddingScreenVisible = false
+                                editingItem = null
+
+                            } else {
+
+                                // открываем экран добавления
+                                isAddingScreenVisible = true
+                            }
                         }
                     ) {
 
-                        if (isAddingScreenVisible) {
+                        if (isFormVisible) {
 
                             Text("К гардеробу")
 
@@ -67,10 +85,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // экран добавления одежды
-                    if (isAddingScreenVisible) {
+                    if (isFormVisible) {
+
+                        // запоминаем текущий редактируемый
+                        // в локальной val чтобы умный каст работал внутри лямбды
+                        val currentlyEditing = editingItem
 
                         AddClothingScreen(
+
+                            existingItem = currentlyEditing,
 
                             onSaveClick = {
                                     name,
@@ -79,18 +102,34 @@ class MainActivity : ComponentActivity() {
                                     season,
                                     imageUri ->
 
-                                // добавляем новую вещь
-                                wardrobeViewModel.addClothingItem(
-                                    name = name,
-                                    category = category,
-                                    color = color,
-                                    season = season,
-                                    imageUri = imageUri
-                                )
+                                if (currentlyEditing == null) {
+
+                                    // добавляем новую вещь
+                                    wardrobeViewModel.addClothingItem(
+                                        name = name,
+                                        category = category,
+                                        color = color,
+                                        season = season,
+                                        imageUri = imageUri
+                                    )
+
+                                } else {
+
+                                    // обновляем существующую
+                                    wardrobeViewModel.updateClothingItem(
+                                        id = currentlyEditing.id,
+                                        name = name,
+                                        category = category,
+                                        color = color,
+                                        season = season,
+                                        imageUri = imageUri
+                                    )
+                                }
 
                                 // после сохранения возвращаемся
                                 // обратно к гардеробу
                                 isAddingScreenVisible = false
+                                editingItem = null
                             }
                         )
 
@@ -100,6 +139,12 @@ class MainActivity : ComponentActivity() {
                         WardrobeScreen(
                             clothingItems =
                                 wardrobeViewModel.clothingItems,
+
+                            onEditClick = { item ->
+
+                                // открываем форму редактирования
+                                editingItem = item
+                            },
 
                             onDeleteClick = { item ->
 
