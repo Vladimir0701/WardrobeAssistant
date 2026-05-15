@@ -67,4 +67,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // ML Kit для отделения одежды от фона
+    implementation(libs.mlkit.subject.segmentation)
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -32,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,8 +46,9 @@ import com.example.wardrobeassistant.data.model.Category
 import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
-import com.example.wardrobeassistant.utils.saveImageToInternalStorage
+import com.example.wardrobeassistant.utils.processAndSaveImage
 import com.example.wardrobeassistant.utils.toImageModel
+import kotlinx.coroutines.launch
 
 @OptIn(
     ExperimentalMaterial3Api::class,
@@ -103,8 +106,17 @@ fun AddClothingScreen(
         mutableStateOf(false)
     }
 
-    // нужен Context для копирования фото в filesDir
+    // нужен Context для работы с фото
     val context = LocalContext.current
+
+    // scope для запуска обработки в корутине
+    val scope = rememberCoroutineScope()
+
+    // флаг что фото сейчас обрабатывается ML моделью
+    // нужен для индикатора загрузки
+    var isProcessing by remember {
+        mutableStateOf(false)
+    }
 
     // лаунчер для выбора фото из галереи
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -113,14 +125,22 @@ fun AddClothingScreen(
 
         if (uri != null) {
 
-            // копируем фото к нам в filesDir
-            val savedUri = saveImageToInternalStorage(
-                context = context,
-                sourceUri = uri
-            )
+            // запускаем обработку в фоне
+            // обработка может занять пару секунд
+            scope.launch {
 
-            if (savedUri != null) {
-                selectedImageUri = savedUri
+                isProcessing = true
+
+                val savedUri = processAndSaveImage(
+                    context = context,
+                    sourceUri = uri
+                )
+
+                if (savedUri != null) {
+                    selectedImageUri = savedUri
+                }
+
+                isProcessing = false
             }
         }
     }
@@ -144,9 +164,35 @@ fun AddClothingScreen(
             style = MaterialTheme.typography.headlineSmall
         )
 
-        // превью выбранной фотографии
-        if (selectedImageUri != null) {
+        // пока идет обработка - крутилка вместо превью
+        if (isProcessing) {
 
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment =
+                        androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(8.dp)
+                ) {
+
+                    CircularProgressIndicator()
+
+                    Text(
+                        text = "Убираем фон...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+        } else if (selectedImageUri != null) {
+
+            // превью выбранной фотографии
             AsyncImage(
                 model = toImageModel(selectedImageUri),
                 contentDescription = "Превью одежды",
@@ -158,6 +204,7 @@ fun AddClothingScreen(
         }
 
         // кнопка выбора фото
+        // блокируем пока обрабатываем чтобы не запустить два раза
         OutlinedButton(
             onClick = {
 
@@ -169,6 +216,7 @@ fun AddClothingScreen(
                     )
                 )
             },
+            enabled = !isProcessing,
             modifier = Modifier.fillMaxWidth()
         ) {
 
@@ -321,6 +369,7 @@ fun AddClothingScreen(
         }
 
         // кнопка сохранения
+        // запрещаем сохранять пока идет обработка фото
         Button(
             onClick = {
 
@@ -332,6 +381,7 @@ fun AddClothingScreen(
                     selectedImageUri
                 )
             },
+            enabled = !isProcessing,
             modifier = Modifier.fillMaxWidth()
         ) {
 
