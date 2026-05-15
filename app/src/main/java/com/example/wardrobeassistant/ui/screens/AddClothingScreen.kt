@@ -154,16 +154,6 @@ fun AddClothingScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
 
-        // заголовок меняется в зависимости от режима
-        Text(
-            text = if (existingItem == null) {
-                "Добавление одежды"
-            } else {
-                "Редактирование"
-            },
-            style = MaterialTheme.typography.headlineSmall
-        )
-
         // пока идет обработка - крутилка вместо превью
         if (isProcessing) {
 
