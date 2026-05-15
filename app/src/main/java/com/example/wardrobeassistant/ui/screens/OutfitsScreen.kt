@@ -232,6 +232,68 @@ fun OutfitsScreen(
         ) {
             Text("Подобрать всё пустое")
         }
+
+        // кнопка - переподобрать ВСЕ заполненные слоты разом
+        // пустые слоты не трогаем (не было - не нужно)
+        // каждый перебор исключает текущую вещь, чтобы был реально новый образ
+        Button(
+            onClick = {
+
+                // снимок текущего состояния
+                // capture в локальные val для smart cast
+                val currentBase = slotBase
+                val currentBottom = slotBottom
+                val currentOuter = slotOuter
+
+                // новый базовый верх (если был)
+                // выбираем случайный из категории, исключая текущий
+                val newBase: ClothingItem? = if (currentBase != null) {
+                    val pool = availableItems.filter {
+                        it.category == Category.BASE_TOP &&
+                            it.id != currentBase.id
+                    }
+                    // если ничего не нашли (всего 1 вещь была) - оставляем
+                    findBestMatch(pool, emptyList()) ?: currentBase
+                } else {
+                    null
+                }
+
+                // новый низ - подбираем к новому базовому верху
+                val newBottom: ClothingItem? = if (currentBottom != null) {
+                    val pool = availableItems.filter {
+                        it.category == Category.BOTTOM &&
+                            it.id != currentBottom.id
+                    }
+                    findBestMatch(
+                        pool = pool,
+                        filledItems = listOfNotNull(newBase)
+                    ) ?: currentBottom
+                } else {
+                    null
+                }
+
+                // новый верхний слой - подбираем к новым верху и низу
+                val newOuter: ClothingItem? = if (currentOuter != null) {
+                    val pool = availableItems.filter {
+                        it.category == Category.OUTER_LAYER &&
+                            it.id != currentOuter.id
+                    }
+                    findBestMatch(
+                        pool = pool,
+                        filledItems = listOfNotNull(newBase, newBottom)
+                    ) ?: currentOuter
+                } else {
+                    null
+                }
+
+                slotBase = newBase
+                slotBottom = newBottom
+                slotOuter = newOuter
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Сменить образ")
+        }
     }
 
     // если открыт пикер - показываем диалог
