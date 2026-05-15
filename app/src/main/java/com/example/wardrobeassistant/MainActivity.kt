@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,12 @@ class MainActivity : ComponentActivity() {
 
                 // viewModel со списком одежды
                 val wardrobeViewModel: WardrobeViewModel = viewModel()
+
+                // подписываемся на список из БД
+                // при изменении в БД compose сам перерисует
+                val clothingItems by wardrobeViewModel
+                    .clothingItems
+                    .collectAsState()
 
                 // флаг что открыт экран добавления новой вещи
                 var isAddingScreenVisible by remember {
@@ -137,8 +144,7 @@ class MainActivity : ComponentActivity() {
 
                         // основной экран гардероба
                         WardrobeScreen(
-                            clothingItems =
-                                wardrobeViewModel.clothingItems,
+                            clothingItems = clothingItems,
 
                             onEditClick = { item ->
 

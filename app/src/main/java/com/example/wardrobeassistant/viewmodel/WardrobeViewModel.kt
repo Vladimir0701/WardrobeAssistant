@@ -1,43 +1,41 @@
 package com.example.wardrobeassistant.viewmodel
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.wardrobeassistant.data.local.AppDatabase
 import com.example.wardrobeassistant.data.model.Category
 import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.data.model.ColorGroup
 import com.example.wardrobeassistant.data.model.Season
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-class WardrobeViewModel : ViewModel() {
+// AndroidViewModel чтобы можно было получить Context
+// он нужен для базы данных
+class WardrobeViewModel(
+    application: Application
+) : AndroidViewModel(application) {
 
-    // счетчик для id вещей
-    // пока сделал просто вручную
-    private var nextId = 1
+    // получаем DAO из синглтона базы данных
+    private val dao = AppDatabase
+        .getInstance(application)
+        .clothingDao()
 
-    // основной список одежды
-    // mutableStateListOf нужен чтобы compose видел изменения
-    val clothingItems = mutableStateListOf<ClothingItem>()
-
-    // тестовые данные при первом запуске
-    // init вызывается один раз при создании viewmodel
-    // потом уберем когда подключим Room
-    init {
-
-        addClothingItem(
-            name = "Черная футболка",
-            category = Category.BASE_TOP,
-            color = ColorGroup.BLACK,
-            season = Season.SUMMER,
-            imageUri = null
+    // список одежды теперь приходит из БД как поток
+    // stateIn превращает обычный Flow в StateFlow
+    // StateFlow всегда имеет текущее значение и compose его сразу видит
+    val clothingItems: StateFlow<List<ClothingItem>> = dao
+        .getAll()
+        .stateIn(
+            scope = viewModelScope,
+            // 5 секунд держим подписку после ухода с экрана
+            // на случай если юзер быстро вернется
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
         )
-
-        addClothingItem(
-            name = "Синие джинсы",
-            category = Category.BOTTOM,
-            color = ColorGroup.BLUE,
-            season = Season.DEMI_SEASON,
-            imageUri = null
-        )
-    }
 
     fun addClothingItem(
         name: String,
@@ -48,27 +46,27 @@ class WardrobeViewModel : ViewModel() {
     ) {
 
         // защита от пустого названия
-        // потом можно будет добавить snackbar или ошибку
         if (name.isBlank()) {
             return
         }
 
-        // создаем новый объект одежды
-        val item = ClothingItem(
-            id = nextId++,
-            name = name.trim(),
-            category = category,
-            color = color,
-            season = season,
-            imageUri = imageUri
-        )
+        // запускаем корутину в скоупе viewmodel
+        // корутина живет пока живет viewmodel
+        viewModelScope.launch {
 
-        // добавляем в список
-        clothingItems.add(item)
+            // id=0 - Room сам присвоит автоинкрементом
+            dao.insert(
+                ClothingItem(
+                    name = name.trim(),
+                    category = category,
+                    color = color,
+                    season = season,
+                    imageUri = imageUri
+                )
+            )
+        }
     }
 
-    // обновление существующей вещи
-    // находим по id и заменяем поля
     fun updateClothingItem(
         id: Int,
         name: String,
@@ -78,41 +76,30 @@ class WardrobeViewModel : ViewModel() {
         imageUri: String?
     ) {
 
-        // защита от пустого названия
         if (name.isBlank()) {
             return
         }
 
-        // ищем вещь в списке
-        // indexOfFirst вернет -1 если не нашли
-        val index = clothingItems.indexOfFirst { item ->
-            item.id == id
-        }
+        viewModelScope.launch {
 
-        // если вещь куда то делась - ничего не делаем
-        if (index == -1) {
-            return
+            // обновляем по id
+            dao.update(
+                ClothingItem(
+                    id = id,
+                    name = name.trim(),
+                    category = category,
+                    color = color,
+                    season = season,
+                    imageUri = imageUri
+                )
+            )
         }
-
-        // copy создает новый объект с обновленными полями
-        // id оставляем прежним
-        clothingItems[index] = clothingItems[index].copy(
-            name = name.trim(),
-            category = category,
-            color = color,
-            season = season,
-            imageUri = imageUri
-        )
     }
 
-    // удаление вещи по id
-    // ищем по id чтобы случайно не удалить не ту
     fun removeClothingItem(id: Int) {
 
-        // removeAll вернет true если что то удалилось
-        // но нам это значение не нужно
-        clothingItems.removeAll { item ->
-            item.id == id
+        viewModelScope.launch {
+            dao.deleteById(id)
         }
     }
 }
