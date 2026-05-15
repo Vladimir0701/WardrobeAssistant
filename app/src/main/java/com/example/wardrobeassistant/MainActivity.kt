@@ -4,12 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +34,7 @@ import com.example.wardrobeassistant.viewmodel.WardrobeViewModel
 
 class MainActivity : ComponentActivity() {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
@@ -38,7 +45,6 @@ class MainActivity : ComponentActivity() {
 
         setContent {
 
-            // тема приложения
             WardrobeAssistantTheme {
 
                 // viewModel со списком одежды
@@ -69,129 +75,166 @@ class MainActivity : ComponentActivity() {
                     isAddingScreenVisible || editingItem != null
 
                 // мы где то кроме главного экрана гардероба
-                val isOnSubScreen = isFormVisible || isOutfitsScreenVisible
+                val isOnSubScreen =
+                    isFormVisible || isOutfitsScreenVisible
 
-                Column(
+                // заголовок в шапке зависит от текущего экрана
+                val screenTitle = when {
+                    editingItem != null -> "Редактирование"
+                    isAddingScreenVisible -> "Добавление одежды"
+                    isOutfitsScreenVisible -> "Подбор комплекта"
+                    else -> "Гардероб"
+                }
 
-                    // небольшой отступ сверху
-                    // чтобы кнопка не залезала под статус бар
-                    modifier = Modifier.padding(
-                        top = 40.dp,
-                        start = 8.dp,
-                        end = 8.dp
-                    )
-                ) {
+                Scaffold(
+                    topBar = {
 
-                    if (isOnSubScreen) {
+                        TopAppBar(
+                            title = {
+                                Text(screenTitle)
+                            },
+                            navigationIcon = {
 
-                        // на любом подэкране - кнопка вернуться
-                        Button(
-                            onClick = {
+                                // стрелка назад только на подэкранах
+                                if (isOnSubScreen) {
 
-                                // сбрасываем все флаги
-                                isAddingScreenVisible = false
-                                editingItem = null
-                                isOutfitsScreenVisible = false
+                                    IconButton(
+                                        onClick = {
+                                            // сбрасываем все флаги
+                                            isAddingScreenVisible = false
+                                            editingItem = null
+                                            isOutfitsScreenVisible = false
+                                        }
+                                    ) {
+                                        // стрелка символом
+                                        // чтобы не тянуть либу с иконками
+                                        Text(
+                                            text = "←",
+                                            style = MaterialTheme
+                                                .typography.titleLarge
+                                        )
+                                    }
+                                }
                             }
-                        ) {
-                            Text("К гардеробу")
-                        }
+                        )
+                    },
+                    bottomBar = {
 
-                    } else {
+                        // нижняя панель с действиями
+                        // только на главном экране гардероба
+                        if (!isOnSubScreen) {
 
-                        // на главном экране - две кнопки в ряд
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement =
-                                Arrangement.spacedBy(8.dp)
-                        ) {
-
-                            Button(
-                                onClick = {
-                                    isAddingScreenVisible = true
-                                },
-                                modifier = Modifier.weight(1f)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(
+                                        horizontal = 16.dp,
+                                        vertical = 12.dp
+                                    ),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Добавить")
-                            }
 
-                            Button(
-                                onClick = {
-                                    isOutfitsScreenVisible = true
-                                },
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Подобрать комплект")
+                                Button(
+                                    onClick = {
+                                        isAddingScreenVisible = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Добавить")
+                                }
+
+                                Button(
+                                    onClick = {
+                                        isOutfitsScreenVisible = true
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("Подобрать комплект")
+                                }
                             }
                         }
                     }
+                ) { innerPadding ->
 
-                    when {
+                    // Box с отступами от Scaffold
+                    // innerPadding учитывает шапку, нижнюю панель,
+                    // статус бар и вырезы - больше не хардкодим 40.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
 
-                        isFormVisible -> {
+                        when {
 
-                            val currentlyEditing = editingItem
+                            isFormVisible -> {
 
-                            AddClothingScreen(
+                                val currentlyEditing = editingItem
 
-                                existingItem = currentlyEditing,
+                                AddClothingScreen(
 
-                                onSaveClick = {
-                                        name,
-                                        category,
-                                        color,
-                                        season,
-                                        imageUri ->
+                                    existingItem = currentlyEditing,
 
-                                    if (currentlyEditing == null) {
+                                    onSaveClick = {
+                                            name,
+                                            category,
+                                            color,
+                                            season,
+                                            imageUri ->
 
-                                        wardrobeViewModel.addClothingItem(
-                                            name = name,
-                                            category = category,
-                                            color = color,
-                                            season = season,
-                                            imageUri = imageUri
-                                        )
+                                        if (currentlyEditing == null) {
 
-                                    } else {
+                                            wardrobeViewModel
+                                                .addClothingItem(
+                                                    name = name,
+                                                    category = category,
+                                                    color = color,
+                                                    season = season,
+                                                    imageUri = imageUri
+                                                )
 
-                                        wardrobeViewModel.updateClothingItem(
-                                            id = currentlyEditing.id,
-                                            name = name,
-                                            category = category,
-                                            color = color,
-                                            season = season,
-                                            imageUri = imageUri
-                                        )
+                                        } else {
+
+                                            wardrobeViewModel
+                                                .updateClothingItem(
+                                                    id = currentlyEditing.id,
+                                                    name = name,
+                                                    category = category,
+                                                    color = color,
+                                                    season = season,
+                                                    imageUri = imageUri
+                                                )
+                                        }
+
+                                        isAddingScreenVisible = false
+                                        editingItem = null
                                     }
+                                )
+                            }
 
-                                    isAddingScreenVisible = false
-                                    editingItem = null
-                                }
-                            )
-                        }
+                            isOutfitsScreenVisible -> {
 
-                        isOutfitsScreenVisible -> {
+                                OutfitsScreen(
+                                    clothingItems = clothingItems
+                                )
+                            }
 
-                            OutfitsScreen(
-                                clothingItems = clothingItems
-                            )
-                        }
+                            else -> {
 
-                        else -> {
+                                WardrobeScreen(
+                                    clothingItems = clothingItems,
 
-                            WardrobeScreen(
-                                clothingItems = clothingItems,
+                                    onEditClick = { item ->
+                                        editingItem = item
+                                    },
 
-                                onEditClick = { item ->
-                                    editingItem = item
-                                },
-
-                                onDeleteClick = { item ->
-                                    wardrobeViewModel
-                                        .removeClothingItem(item.id)
-                                }
-                            )
+                                    onDeleteClick = { item ->
+                                        wardrobeViewModel
+                                            .removeClothingItem(item.id)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
