@@ -3,9 +3,12 @@ package com.example.wardrobeassistant.utils
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.util.Log
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private const val TAG = "ImageStorage"
 
 // копируем выбранное фото в filesDir приложения
 // чтобы оно не потерялось после закрытия приложения
@@ -77,6 +80,8 @@ suspend fun processAndSaveImage(
     sourceUri: Uri
 ): String? = withContext(Dispatchers.IO) {
 
+    Log.d(TAG, "processAndSaveImage старт")
+
     // пробуем отделить одежду от фона
     val processed = removeBackgroundOrNull(
         context = context,
@@ -85,6 +90,8 @@ suspend fun processAndSaveImage(
 
     if (processed != null) {
 
+        Log.d(TAG, "фон убран успешно, сохраняем обработанную")
+
         // получилось - сохраняем картинку с белым фоном
         saveBitmapToInternalStorage(
             context = context,
@@ -92,6 +99,8 @@ suspend fun processAndSaveImage(
         )
 
     } else {
+
+        Log.w(TAG, "не получилось убрать фон, сохраняем оригинал")
 
         // не получилось - сохраним хотя бы оригинал
         // чтобы юзер не остался без фото

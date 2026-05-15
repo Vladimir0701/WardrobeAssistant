@@ -5,11 +5,14 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
+import android.util.Log
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmentation
 import com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
+
+private const val TAG = "BgRemover"
 
 // убирает фон у фотографии через ML Kit
 // возвращает Bitmap где вместо фона - белый цвет
@@ -19,10 +22,13 @@ suspend fun removeBackgroundOrNull(
     sourceUri: Uri
 ): Bitmap? = suspendCancellableCoroutine { cont ->
 
+    Log.d(TAG, "removeBackgroundOrNull: старт, uri=$sourceUri")
+
     try {
 
         // готовим картинку для ml kit
         val input = InputImage.fromFilePath(context, sourceUri)
+        Log.d(TAG, "InputImage готов")
 
         // включаем получение foreground bitmap
         // это и есть результат - картинка где фон прозрачный
@@ -32,17 +38,24 @@ suspend fun removeBackgroundOrNull(
 
         val segmenter = SubjectSegmentation.getClient(options)
 
+        Log.d(TAG, "запускаем сегментацию...")
+
         segmenter.process(input)
             .addOnSuccessListener { result ->
+
+                Log.d(TAG, "сегментация выполнена успешно")
 
                 val foreground = result.foregroundBitmap
 
                 if (foreground == null) {
 
                     // модель не нашла объект
+                    Log.w(TAG, "foregroundBitmap == null, объект не найден")
                     cont.resume(null)
 
                 } else {
+
+                    Log.d(TAG, "foreground готов: ${foreground.width}x${foreground.height}")
 
                     // делаем белый холст того же размера
                     // и накладываем сверху наш foreground
@@ -63,14 +76,14 @@ suspend fun removeBackgroundOrNull(
             .addOnFailureListener { e ->
 
                 // например модель еще не скачалась
-                e.printStackTrace()
+                Log.e(TAG, "сегментация упала", e)
                 cont.resume(null)
             }
 
     } catch (e: Exception) {
 
         // не смогли прочитать картинку или что то другое
-        e.printStackTrace()
+        Log.e(TAG, "исключение при подготовке", e)
         cont.resume(null)
     }
 }
