@@ -19,6 +19,7 @@ import com.example.wardrobeassistant.data.model.ClothingItem
 import com.example.wardrobeassistant.ui.screens.AddClothingScreen
 import com.example.wardrobeassistant.ui.screens.WardrobeScreen
 import com.example.wardrobeassistant.ui.theme.WardrobeAssistantTheme
+import com.example.wardrobeassistant.utils.requestSubjectSegmentationModel
 import com.example.wardrobeassistant.viewmodel.WardrobeViewModel
 
 class MainActivity : ComponentActivity() {
@@ -26,6 +27,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
+
+        // запрашиваем установку модели сегментации сразу при старте
+        // первый раз скачивание может занять минуту-две
+        requestSubjectSegmentationModel(this)
 
         setContent {
 
