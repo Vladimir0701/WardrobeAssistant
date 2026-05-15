@@ -3,13 +3,16 @@ package com.example.wardrobeassistant.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +21,8 @@ import com.example.wardrobeassistant.data.model.ClothingItem
 
 @Composable
 fun WardrobeScreen(
-    clothingItems: List<ClothingItem>
+    clothingItems: List<ClothingItem>,
+    onDeleteClick: (ClothingItem) -> Unit
 ) {
 
     // если список пустой
@@ -56,7 +60,12 @@ fun WardrobeScreen(
     ) {
 
         // проходимся по всем вещам
-        items(clothingItems) { item ->
+        // key чтобы compose правильно перерисовывал
+        // после удаления одной из карточек
+        items(
+            items = clothingItems,
+            key = { item -> item.id }
+        ) { item ->
 
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -86,6 +95,20 @@ fun WardrobeScreen(
                     Text(
                         text = "Сезон: ${item.season}"
                     )
+
+                    // небольшой отступ перед кнопкой
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // кнопка удаления
+                    // OutlinedButton чтобы не сильно бросалась в глаза
+                    OutlinedButton(
+                        onClick = {
+                            onDeleteClick(item)
+                        }
+                    ) {
+
+                        Text("Удалить")
+                    }
                 }
             }
         }

@@ -119,7 +119,14 @@ class MainActivity : ComponentActivity() {
                         // основной экран гардероба
                         WardrobeScreen(
                             clothingItems =
-                                wardrobeViewModel.clothingItems
+                                wardrobeViewModel.clothingItems,
+
+                            onDeleteClick = { item ->
+
+                                // удаляем выбранную вещь
+                                wardrobeViewModel
+                                    .removeClothingItem(item.id)
+                            }
                         )
                     }
                 }

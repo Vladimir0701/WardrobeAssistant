@@ -42,4 +42,15 @@ class WardrobeViewModel : ViewModel() {
         // добавляем в список
         clothingItems.add(item)
     }
+
+    // удаление вещи по id
+    // ищем по id чтобы случайно не удалить не ту
+    fun removeClothingItem(id: Int) {
+
+        // removeAll вернет true если что то удалилось
+        // но нам это значение не нужно
+        clothingItems.removeAll { item ->
+            item.id == id
+        }
+    }
 }
