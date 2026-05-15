@@ -3,19 +3,28 @@ package com.example.wardrobeassistant.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,6 +34,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,7 +47,10 @@ import com.example.wardrobeassistant.data.model.Season
 import com.example.wardrobeassistant.utils.saveImageToInternalStorage
 import com.example.wardrobeassistant.utils.toImageModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalLayoutApi::class
+)
 @Composable
 fun AddClothingScreen(
     // если передали существующую вещь - значит режим редактирования
@@ -56,7 +70,6 @@ fun AddClothingScreen(
     val itemKey = existingItem?.id
 
     // название одежды
-    // если редактируем - подставляем существующее имя
     var clothingName by remember(itemKey) {
         mutableStateOf(existingItem?.name ?: "")
     }
@@ -86,10 +99,6 @@ fun AddClothingScreen(
         mutableStateOf(false)
     }
 
-    var colorExpanded by remember {
-        mutableStateOf(false)
-    }
-
     var seasonExpanded by remember {
         mutableStateOf(false)
     }
@@ -98,23 +107,18 @@ fun AddClothingScreen(
     val context = LocalContext.current
 
     // лаунчер для выбора фото из галереи
-    // PhotoPicker - стандартный способ
-    // в новых версиях андроида не требует разрешений
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
 
-        // uri может быть null если юзер закрыл пикер
         if (uri != null) {
 
             // копируем фото к нам в filesDir
-            // чтобы оставалось после перезапуска приложения
             val savedUri = saveImageToInternalStorage(
                 context = context,
                 sourceUri = uri
             )
 
-            // если копирование прошло успешно - сохраняем путь
             if (savedUri != null) {
                 selectedImageUri = savedUri
             }
@@ -125,8 +129,6 @@ fun AddClothingScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            // экран длинный, делаем прокрутку
-            // чтобы кнопка сохранить не уезжала за экран
             .verticalScroll(rememberScrollState()),
 
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -143,7 +145,6 @@ fun AddClothingScreen(
         )
 
         // превью выбранной фотографии
-        // показываем только если что то выбрано
         if (selectedImageUri != null) {
 
             AsyncImage(
@@ -152,7 +153,6 @@ fun AddClothingScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp),
-                // картинка вписывается целиком
                 contentScale = ContentScale.Fit
             )
         }
@@ -161,8 +161,6 @@ fun AddClothingScreen(
         OutlinedButton(
             onClick = {
 
-                // запускаем пикер
-                // ImageOnly - показываем только картинки без видео
                 photoPickerLauncher.launch(
                     PickVisualMediaRequest(
                         ActivityResultContracts
@@ -174,7 +172,6 @@ fun AddClothingScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
 
-            // меняем текст если фото уже выбрано
             if (selectedImageUri == null) {
                 Text("Выбрать фото")
             } else {
@@ -203,10 +200,12 @@ fun AddClothingScreen(
         ) {
 
             OutlinedTextField(
-                value = selectedCategory.name,
+                value = selectedCategory.displayName,
                 onValueChange = {},
                 readOnly = true,
+                // menuAnchor обязателен, без него меню не открывается
                 modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 label = {
                     Text("Категория")
@@ -224,7 +223,7 @@ fun AddClothingScreen(
 
                     DropdownMenuItem(
                         text = {
-                            Text(category.name)
+                            Text(category.displayName)
                         },
                         onClick = {
 
@@ -236,45 +235,45 @@ fun AddClothingScreen(
             }
         }
 
-        // выбор цвета
-        ExposedDropdownMenuBox(
-            expanded = colorExpanded,
-            onExpandedChange = {
-                colorExpanded = !colorExpanded
-            }
+        // палитра цветов
+        Text(
+            text = "Цвет: ${selectedColor.displayName}",
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        // FlowRow сам переносит элементы на новую строку
+        // если не помещаются по ширине
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
 
-            OutlinedTextField(
-                value = selectedColor.name,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                label = {
-                    Text("Цвет")
-                }
-            )
+            ColorGroup.entries.forEach { color ->
 
-            ExposedDropdownMenu(
-                expanded = colorExpanded,
-                onDismissRequest = {
-                    colorExpanded = false
-                }
-            ) {
+                // кружок выбран если совпадает с текущим
+                val isSelected = color == selectedColor
 
-                ColorGroup.entries.forEach { color ->
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(color.name)
-                        },
-                        onClick = {
-
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(color.color)
+                        // у выбранного - толстая темная рамка
+                        // у остальных - тонкая серая
+                        .border(
+                            width = if (isSelected) 3.dp else 1.dp,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Gray
+                            },
+                            shape = CircleShape
+                        )
+                        .clickable {
                             selectedColor = color
-                            colorExpanded = false
                         }
-                    )
-                }
+                )
             }
         }
 
@@ -287,10 +286,11 @@ fun AddClothingScreen(
         ) {
 
             OutlinedTextField(
-                value = selectedSeason.name,
+                value = selectedSeason.displayName,
                 onValueChange = {},
                 readOnly = true,
                 modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 label = {
                     Text("Сезон")
@@ -308,7 +308,7 @@ fun AddClothingScreen(
 
                     DropdownMenuItem(
                         text = {
-                            Text(season.name)
+                            Text(season.displayName)
                         },
                         onClick = {
 
@@ -321,7 +321,6 @@ fun AddClothingScreen(
         }
 
         // кнопка сохранения
-        // надпись зависит от режима
         Button(
             onClick = {
 

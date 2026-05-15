@@ -122,17 +122,17 @@ fun WardrobeScreen(
 
                     // категория
                     Text(
-                        text = "Категория: ${item.category}"
+                        text = "Категория: ${item.category.displayName}"
                     )
 
                     // цвет
                     Text(
-                        text = "Цвет: ${item.color}"
+                        text = "Цвет: ${item.color.displayName}"
                     )
 
                     // сезон
                     Text(
-                        text = "Сезон: ${item.season}"
+                        text = "Сезон: ${item.season.displayName}"
                     )
 
                     // небольшой отступ перед кнопками
