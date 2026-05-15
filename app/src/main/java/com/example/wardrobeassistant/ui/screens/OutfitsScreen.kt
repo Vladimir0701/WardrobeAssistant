@@ -113,16 +113,23 @@ fun OutfitsScreen(
                 pickerCategory = Category.BASE_TOP
             },
             onPickAuto = {
+                // исключаем текущую вещь чтобы алгоритм выбрал другую
+                // если слот пустой - id?. = null и filter ничего не исключит
                 val pool = availableItems.filter {
-                    it.category == Category.BASE_TOP
+                    it.category == Category.BASE_TOP &&
+                        it.id != slotBase?.id
                 }
-                slotBase = findBestMatch(
+                val newPick = findBestMatch(
                     pool = pool,
                     filledItems = listOfNotNull(
                         slotBottom,
                         slotOuter
                     )
                 )
+                // если кандидатов нет - оставляем как было
+                if (newPick != null) {
+                    slotBase = newPick
+                }
             },
             onClear = { slotBase = null }
         )
@@ -137,15 +144,19 @@ fun OutfitsScreen(
             },
             onPickAuto = {
                 val pool = availableItems.filter {
-                    it.category == Category.BOTTOM
+                    it.category == Category.BOTTOM &&
+                        it.id != slotBottom?.id
                 }
-                slotBottom = findBestMatch(
+                val newPick = findBestMatch(
                     pool = pool,
                     filledItems = listOfNotNull(
                         slotBase,
                         slotOuter
                     )
                 )
+                if (newPick != null) {
+                    slotBottom = newPick
+                }
             },
             onClear = { slotBottom = null }
         )
@@ -160,15 +171,19 @@ fun OutfitsScreen(
             },
             onPickAuto = {
                 val pool = availableItems.filter {
-                    it.category == Category.OUTER_LAYER
+                    it.category == Category.OUTER_LAYER &&
+                        it.id != slotOuter?.id
                 }
-                slotOuter = findBestMatch(
+                val newPick = findBestMatch(
                     pool = pool,
                     filledItems = listOfNotNull(
                         slotBase,
                         slotBottom
                     )
                 )
+                if (newPick != null) {
+                    slotOuter = newPick
+                }
             },
             onClear = { slotOuter = null }
         )
@@ -419,6 +434,8 @@ private fun SlotCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // три кнопки в ряд
+                // Перебрать просит алгоритм найти другую вещь
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -429,6 +446,13 @@ private fun SlotCard(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("Заменить")
+                    }
+
+                    OutlinedButton(
+                        onClick = onPickAuto,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Перебрать")
                     }
 
                     OutlinedButton(
