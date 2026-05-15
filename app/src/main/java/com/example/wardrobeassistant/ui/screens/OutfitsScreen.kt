@@ -3,7 +3,6 @@ package com.example.wardrobeassistant.ui.screens
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,11 +11,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,9 +30,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.wardrobeassistant.data.model.Category
 import com.example.wardrobeassistant.data.model.ClothingItem
-import com.example.wardrobeassistant.data.model.Outfit
-import com.example.wardrobeassistant.utils.generateOutfits
+import com.example.wardrobeassistant.data.model.Season
+import com.example.wardrobeassistant.utils.findBestMatch
+import com.example.wardrobeassistant.utils.outfitScore
 import com.example.wardrobeassistant.utils.toImageModel
 
 @Composable
@@ -39,209 +42,400 @@ fun OutfitsScreen(
     clothingItems: List<ClothingItem>
 ) {
 
-    // генерируем все возможные комплекты
-    val allOutfits = generateOutfits(clothingItems)
-
-    // если ничего не сгенерировалось - подсказка
-    if (allOutfits.isEmpty()) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Text(
-                text = "Не получилось собрать комплект",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Добавьте хотя бы одну вещь категории " +
-                    "\"Базовый верх\" и одну категории \"Низ\"",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        return
+    // три слота комплекта
+    // null = пусто
+    var slotBase: ClothingItem? by remember {
+        mutableStateOf(null)
     }
 
-    // выбранный лимит вывода
-    // null означает показывать все
-    var selectedLimit: Int? by remember {
-        mutableStateOf(30)
+    var slotBottom: ClothingItem? by remember {
+        mutableStateOf(null)
     }
 
-    // доступные варианты для выбора
-    // null это "все"
-    val limitOptions = listOf<Int?>(10, 30, 100, null)
+    var slotOuter: ClothingItem? by remember {
+        mutableStateOf(null)
+    }
 
-    // применяем выбранный лимит
-    // локальная val чтобы умный каст сработал
-    val limit = selectedLimit
-    val outfitsToShow = if (limit != null) {
-        allOutfits.take(limit)
+    // фильтр сезона
+    // null = показывать все
+    var seasonFilter: Season? by remember {
+        mutableStateOf(null)
+    }
+
+    // какой слот сейчас открыл пикер
+    // null = диалог закрыт
+    var pickerCategory: Category? by remember {
+        mutableStateOf(null)
+    }
+
+    // пул вещей с учетом фильтра сезона
+    // демисезонные попадают в любой фильтр - они универсальные
+    val availableItems = if (seasonFilter == null) {
+        clothingItems
     } else {
-        allOutfits
+        clothingItems.filter { item ->
+            item.season == seasonFilter ||
+                item.season == Season.DEMI_SEASON
+        }
+    }
+
+    // оценка считается по тем слотам что заполнены
+    val filled = listOfNotNull(slotBase, slotBottom, slotOuter)
+    val score: Double? = if (filled.size >= 2) {
+        outfitScore(filled)
+    } else {
+        null
     }
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
-        // строка с фильтром по количеству
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        // фильтр сезона
+        SeasonFilterRow(
+            selected = seasonFilter,
+            onChange = { seasonFilter = it }
+        )
 
-            Text(
-                text = "Показать:",
-                style = MaterialTheme.typography.bodyMedium
-            )
+        // карточка с оценкой
+        ScoreCard(score = score)
 
-            limitOptions.forEach { option ->
-
-                FilterChip(
-                    selected = option == selectedLimit,
-                    onClick = {
-                        selectedLimit = option
-                    },
-                    label = {
-                        Text(
-                            // null = "Все", иначе число
-                            text = option?.toString() ?: "Все"
-                        )
-                    }
-                )
-            }
-        }
-
-        // дальше список комплектов
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 4.dp,
-                bottom = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            // заголовок со счетчиком в списке
-            item {
-
-                val totalCount = allOutfits.size
-                val shownCount = outfitsToShow.size
-
-                val header = if (totalCount > shownCount) {
-                    "Найдено $totalCount комплектов, " +
-                        "показано $shownCount"
-                } else {
-                    "Найдено $totalCount комплектов"
+        // слот базового верха
+        SlotCard(
+            title = "Базовый верх",
+            isOptional = false,
+            item = slotBase,
+            onPickManual = {
+                pickerCategory = Category.BASE_TOP
+            },
+            onPickAuto = {
+                val pool = availableItems.filter {
+                    it.category == Category.BASE_TOP
                 }
-
-                Text(
-                    text = header,
-                    style = MaterialTheme.typography.bodyMedium
+                slotBase = findBestMatch(
+                    pool = pool,
+                    filledItems = listOfNotNull(
+                        slotBottom,
+                        slotOuter
+                    )
                 )
-            }
+            },
+            onClear = { slotBase = null }
+        )
 
-            items(outfitsToShow) { outfit ->
-                OutfitCard(outfit = outfit)
-            }
+        // слот низа
+        SlotCard(
+            title = "Низ",
+            isOptional = false,
+            item = slotBottom,
+            onPickManual = {
+                pickerCategory = Category.BOTTOM
+            },
+            onPickAuto = {
+                val pool = availableItems.filter {
+                    it.category == Category.BOTTOM
+                }
+                slotBottom = findBestMatch(
+                    pool = pool,
+                    filledItems = listOfNotNull(
+                        slotBase,
+                        slotOuter
+                    )
+                )
+            },
+            onClear = { slotBottom = null }
+        )
+
+        // слот верхнего слоя - необязательный
+        SlotCard(
+            title = "Верхний слой",
+            isOptional = true,
+            item = slotOuter,
+            onPickManual = {
+                pickerCategory = Category.OUTER_LAYER
+            },
+            onPickAuto = {
+                val pool = availableItems.filter {
+                    it.category == Category.OUTER_LAYER
+                }
+                slotOuter = findBestMatch(
+                    pool = pool,
+                    filledItems = listOfNotNull(
+                        slotBase,
+                        slotBottom
+                    )
+                )
+            },
+            onClear = { slotOuter = null }
+        )
+
+        // кнопка которая заполнит пустые слоты разом
+        Button(
+            onClick = {
+
+                // считаем новые значения в локальных val
+                // чтобы каждое следующее findBestMatch видело свежие данные
+                val newBase = slotBase ?: findBestMatch(
+                    pool = availableItems.filter {
+                        it.category == Category.BASE_TOP
+                    },
+                    filledItems = listOfNotNull(
+                        slotBottom,
+                        slotOuter
+                    )
+                )
+
+                val newBottom = slotBottom ?: findBestMatch(
+                    pool = availableItems.filter {
+                        it.category == Category.BOTTOM
+                    },
+                    filledItems = listOfNotNull(
+                        newBase,
+                        slotOuter
+                    )
+                )
+
+                val newOuter = slotOuter ?: findBestMatch(
+                    pool = availableItems.filter {
+                        it.category == Category.OUTER_LAYER
+                    },
+                    filledItems = listOfNotNull(
+                        newBase,
+                        newBottom
+                    )
+                )
+
+                slotBase = newBase
+                slotBottom = newBottom
+                slotOuter = newOuter
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Подобрать всё пустое")
+        }
+    }
+
+    // если открыт пикер - показываем диалог
+    val currentPickerCategory = pickerCategory
+    if (currentPickerCategory != null) {
+
+        ClothingPickerDialog(
+            title = "Выберите: ${currentPickerCategory.displayName}",
+            items = availableItems.filter {
+                it.category == currentPickerCategory
+            },
+            onPick = { picked ->
+
+                // кладем выбранное в соответствующий слот
+                when (currentPickerCategory) {
+                    Category.BASE_TOP -> slotBase = picked
+                    Category.BOTTOM -> slotBottom = picked
+                    Category.OUTER_LAYER -> slotOuter = picked
+                }
+                pickerCategory = null
+            },
+            onDismiss = { pickerCategory = null }
+        )
+    }
+}
+
+// ряд чипов для фильтра сезона
+@Composable
+private fun SeasonFilterRow(
+    selected: Season?,
+    onChange: (Season?) -> Unit
+) {
+
+    // null = все, дальше конкретные сезоны
+    val options: List<Season?> = listOf(
+        null,
+        Season.SUMMER,
+        Season.WINTER,
+        Season.DEMI_SEASON
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Text(
+            text = "Сезон:",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        options.forEach { option ->
+
+            FilterChip(
+                selected = option == selected,
+                onClick = { onChange(option) },
+                label = {
+                    Text(
+                        text = option?.displayName ?: "Все"
+                    )
+                }
+            )
         }
     }
 }
 
-// карточка с одним сгенерированным комплектом
+// карточка с оценкой комплекта
 @Composable
-private fun OutfitCard(outfit: Outfit) {
+private fun ScoreCard(score: Double?) {
 
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
 
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
 
-            // оценка и текстовая метка
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            if (score != null) {
 
                 Text(
-                    text = "Оценка: ${(outfit.score * 100).toInt()}%",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "Оценка: ${(score * 100).toInt()}%",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = scoreLabel(outfit.score),
+                    text = scoreLabel(score),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+            } else {
+
+                Text(
+                    text = "Выберите минимум 2 вещи " +
+                        "чтобы увидеть оценку",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(12.dp))
+// карточка одного слота
+// показывает пустое состояние или заполненное
+@Composable
+private fun SlotCard(
+    title: String,
+    isOptional: Boolean,
+    item: ClothingItem?,
+    onPickManual: () -> Unit,
+    onPickAuto: () -> Unit,
+    onClear: () -> Unit
+) {
 
-            // фото вещей в ряд
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
 
-                outfit.items.forEach { item ->
+        Column(modifier = Modifier.padding(16.dp)) {
 
-                    Column(
-                        modifier = Modifier.width(96.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            // заголовок с пометкой если слот необязательный
+            Text(
+                text = if (isOptional) {
+                    "$title (необязательно)"
+                } else {
+                    title
+                },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (item == null) {
+
+                // слот пустой - две кнопки на выбор
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    OutlinedButton(
+                        onClick = onPickManual,
+                        modifier = Modifier.weight(1f)
                     ) {
+                        Text("Выбрать")
+                    }
 
-                        if (item.imageUri != null) {
+                    Button(
+                        onClick = onPickAuto,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Подобрать")
+                    }
+                }
 
-                            AsyncImage(
-                                model = toImageModel(item.imageUri),
-                                contentDescription = item.name,
-                                modifier = Modifier.size(96.dp),
-                                contentScale = ContentScale.Crop
-                            )
+            } else {
 
-                        } else {
+                // слот заполнен - показываем вещь и кнопки управления
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
 
-                            Box(
-                                modifier = Modifier.size(96.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "Без фото",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
+                    if (item.imageUri != null) {
 
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = item.category.displayName,
-                            style = MaterialTheme.typography.bodySmall
+                        AsyncImage(
+                            model = toImageModel(item.imageUri),
+                            contentDescription = item.name,
+                            modifier = Modifier.size(80.dp),
+                            contentScale = ContentScale.Crop
                         )
+
+                    } else {
+
+                        Box(
+                            modifier = Modifier.size(80.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Без фото",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
 
                         Text(
                             text = item.name,
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold
                         )
+
+                        Text(
+                            text = "${item.color.displayName}, " +
+                                item.season.displayName,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    OutlinedButton(
+                        onClick = onPickManual,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Заменить")
+                    }
+
+                    OutlinedButton(
+                        onClick = onClear,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Очистить")
                     }
                 }
             }
@@ -249,7 +443,7 @@ private fun OutfitCard(outfit: Outfit) {
     }
 }
 
-// текстовая метка по оценке
+// текстовая метка по оценке для пользователя
 private fun scoreLabel(score: Double): String {
     return when {
         score >= 0.85 -> "Отличный"

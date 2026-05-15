@@ -82,6 +82,33 @@ fun pairScore(a: ClothingItem, b: ClothingItem): Double {
     return color * season
 }
 
+// ищем самую подходящую вещь из пула к уже выбранным вещам
+// pool - кандидаты (предварительно отфильтрованные по категории и сезону)
+// filledItems - вещи которые юзер уже выбрал
+// если кандидатов нет - возвращаем null
+fun findBestMatch(
+    pool: List<ClothingItem>,
+    filledItems: List<ClothingItem>
+): ClothingItem? {
+
+    if (pool.isEmpty()) {
+        return null
+    }
+
+    // если еще ничего не выбрано - не с чем сравнивать
+    // берем случайную вещь
+    if (filledItems.isEmpty()) {
+        return pool.random()
+    }
+
+    // перебираем кандидатов
+    // для каждого считаем оценку с уже выбранными вещами
+    // возвращаем того у кого выше
+    return pool.maxByOrNull { candidate ->
+        outfitScore(filledItems + candidate)
+    }
+}
+
 // оценка комплекта целиком
 // берем все пары вещей и считаем среднее
 fun outfitScore(items: List<ClothingItem>): Double {
